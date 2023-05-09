@@ -1,10 +1,8 @@
 [package]
-name = "struct_iterable"
+name = "struct_iterable_internal"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-struct_iterable_derive = { path = "./struct_iterable_derive" }
-struct_iterable_internal = { path = "./struct_iterable_internal" }
