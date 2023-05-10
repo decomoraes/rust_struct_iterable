@@ -5,6 +5,41 @@ use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, Fields};
 use struct_iterable_internal::Iterable;
 
+/// The `Iterable` proc macro.
+///
+/// Deriving this macro for your struct will make it "iterable". An iterable struct allows you to iterate over its fields, returning a tuple containing the field name as a static string and a reference to the field's value as `dyn Any`.
+///
+/// # Limitations
+///
+/// - Only structs are supported, not enums or unions.
+/// - Only structs with named fields are supported.
+///
+/// # Usage
+///
+/// Add the derive attribute (`#[derive(Iterable)]`) above your struct definition.
+///
+/// ```
+/// use struct_iterable::Iterable;
+///
+/// #[derive(Iterable)]
+/// struct MyStruct {
+///     field1: i32,
+///     field2: String,
+/// }
+/// ```
+///
+/// You can now call the `iter` method on instances of your struct to get an iterator over its fields:
+///
+/// ```
+/// let my_instance = MyStruct {
+///     field1: 42,
+///     field2: "Hello, world!".to_string(),
+/// };
+///
+/// for (field_name, field_value) in my_instance.iter() {
+///     println!("{}: {:?}", field_name, field_value);
+/// }
+/// ```
 #[proc_macro_derive(Iterable)]
 pub fn derive_iterable(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
