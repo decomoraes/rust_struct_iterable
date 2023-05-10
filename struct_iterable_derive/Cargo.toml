@@ -12,4 +12,4 @@ syn = "2.0.13"
 quote = "1.0.26"
 proc-macro2 = "1.0.56"
 erased-serde = "0.3.7"
-struct_iterable_internal = { path = "../struct_iterable_internal" }
+struct_iterable_internal = "0.1.1"
