@@ -1,6 +1,6 @@
 [package]
 name = "struct_iterable"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["André de Moraes <deco.moraes@icloud.com>"]
 edition = "2021"
 description = "A Rust library providing a proc macro to make a struct iterable."
