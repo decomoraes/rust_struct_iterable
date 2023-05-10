@@ -10,6 +10,7 @@ readme = "README.md"
 keywords = ["proc-macro", "struct", "iterable"]
 categories = ["development-tools::cargo-plugins"]
 homepage = "https://github.com/decomoraes/rust_struct_iterable"
+documentation = "https://docs.rs/struct_iterable"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
