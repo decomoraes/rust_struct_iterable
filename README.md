@@ -1,20 +1,20 @@
 # Struct Iterable
 
-`Iterable Structs` is a Rust library that provides a proc macro to make a struct iterable. This allows you to iterate over the fields of your struct in a generic way, with each iteration returning a tuple containing the name of the field as a static string and a reference to the field's value as a `dyn Any`.
+`Struct Iterable` is a Rust library that provides a proc macro to make a struct iterable. This allows you to iterate over the fields of your struct in a generic way, with each iteration returning a tuple containing the name of the field as a static string and a reference to the field's value as a `dyn Any`.
 
 ## How to Use
 
-First, add `Iterable Structs` to your `Cargo.toml`:
+First, add `Struct Iterable` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-iterable_structs = "0.1.0"
+struct_iterable = "0.1.1"
 ```
 
 Next, include the library at the top of your Rust file:
 
 ```rust
-use iterable_structs::IterableStruct;
+use struct_iterable::Iterable;
 ```
 
 Finally, add the `#[derive(Iterable)]` attribute to your struct:
