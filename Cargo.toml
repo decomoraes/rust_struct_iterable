@@ -14,13 +14,27 @@ documentation = "https://docs.rs/struct_iterable"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[workspace]
+members = [
+    "struct_iterable_derive",
+    "struct_iterable_internal",
+]
+
 [dependencies]
-struct_iterable_derive = "0.1.0"
-struct_iterable_internal = "0.1.1"
+struct_iterable_derive = { path="struct_iterable_derive" }
+struct_iterable_internal = { path="struct_iterable_internal" }
 
 [lib]
 name = "struct_iterable"
 path = "src/lib.rs"
+
+[[example]]
+name = "custom-trait"
+path = "examples/custom_trait.rs"
+
+[[example]]
+name = "any"
+path = "examples/any.rs"
 
 [package.metadata.docs.rs]
 all-features = true

@@ -2,8 +2,7 @@ extern crate proc_macro;
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields};
-use struct_iterable_internal::Iterable;
+use syn::{Meta, parse_macro_input, Data, DeriveInput, Fields};
 
 /// The `Iterable` proc macro.
 ///
@@ -37,12 +36,27 @@ use struct_iterable_internal::Iterable;
 /// };
 ///
 /// for (field_name, field_value) in my_instance.iter() {
-///     println!("{}: {:?}", field_name, field_value);
+///     println!("{field_name}: {field_value:?}");
 /// }
 /// ```
-#[proc_macro_derive(Iterable)]
+#[proc_macro_derive(Iterable, attributes(iterable))]
 pub fn derive_iterable(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
+
+    let trait_name = match input.attrs.iter().find(
+        |a| a.path().segments.len() == 1 && a.path().segments[0].ident == "iterable"
+    ) {
+        Some(attr) => {
+            if let Meta::List(meta) = &attr.meta {
+                meta.tokens.clone()
+            } else {
+                panic!("Invalid format of \"iterable\" attribute");
+            }
+        },
+        None => {
+            quote!(std::any::Any)
+        },
+    };
 
     let struct_name = input.ident;
     let fields = match input.data {
@@ -57,19 +71,19 @@ pub fn derive_iterable(input: TokenStream) -> TokenStream {
         let field_ident = &field.ident;
         let field_name = field_ident.as_ref().unwrap().to_string();
         quote! {
-            (#field_name, &(self.#field_ident) as &dyn std::any::Any)
+            (#field_name, &(self.#field_ident) as &dyn #trait_name)
         }
     });
 
-    let expanded = quote! {
-        impl Iterable for #struct_name {
-            fn iter<'a>(&'a self) -> std::vec::IntoIter<(&'static str, &'a dyn std::any::Any)> {
+    TokenStream::from(quote! {
+        impl<'a> struct_iterable::Iterable for &'a #struct_name {
+            type Item = &'a dyn #trait_name;
+
+            fn iter(self) -> std::vec::IntoIter<(&'static str, Self::Item)> {
                 vec![
                     #(#fields_iter),*
                 ].into_iter()
             }
         }
-    };
-
-    TokenStream::from(expanded)
+    })
 }

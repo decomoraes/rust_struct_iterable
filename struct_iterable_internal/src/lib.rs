@@ -27,6 +27,8 @@
 /// }
 /// ```
 pub trait Iterable {
+    type Item;
+
     /// Returns an iterator over the struct's fields as tuples.
     ///
     /// Each tuple contains a field's name as a static string and a reference to the field's value as `dyn Any`.
@@ -52,5 +54,5 @@ pub trait Iterable {
     ///     println!("{}: {:?}", field_name, field_value);
     /// }
     /// ```
-    fn iter(&self) -> std::vec::IntoIter<(&'static str, &'_ dyn std::any::Any)>;
+    fn iter(self) -> std::vec::IntoIter<(&'static str, Self::Item)>;
 }
