@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest an addition or improvement.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: What are you trying to do?
+      description: >-
+        The real-world use case, ideally with a small sketch of the code you
+        would like to be able to write.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What have you tried instead?
+      description: Workarounds, other crates, or existing APIs that almost fit.
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: >-
+        Related issues, links, or constraints (no_std, MSRV, ...). Note that
+        this crate is intentionally small — features that change what `iter()`
+        yields for existing users are unlikely to land as-is.

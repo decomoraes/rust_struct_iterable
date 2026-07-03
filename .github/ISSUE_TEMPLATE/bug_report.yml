@@ -1,0 +1,51 @@
+name: Bug report
+description: Something compiles when it shouldn't, fails when it shouldn't, or behaves wrong.
+labels: [bug]
+body:
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal struct definition and derive invocation
+      description: >-
+        The smallest struct + `#[derive(Iterable)]` (plus any `#[iterable(...)]`
+        attributes and the code calling `.iter()`) that reproduces the problem.
+      render: rust
+      placeholder: |
+        use struct_iterable::Iterable;
+
+        #[derive(Iterable)]
+        struct Repro {
+            field: u32,
+        }
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What you expected to compile, error, or print.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead. Include the full compiler error if there is one.
+    validations:
+      required: true
+  - type: input
+    id: rustc-version
+    attributes:
+      label: rustc version
+      description: Output of `rustc --version`.
+      placeholder: rustc 1.88.0 (6b00bc388 2025-06-23)
+    validations:
+      required: true
+  - type: input
+    id: crate-version
+    attributes:
+      label: struct_iterable version
+      description: The version from your `Cargo.lock` (all three crates version in lockstep).
+      placeholder: 0.1.2
+    validations:
+      required: true

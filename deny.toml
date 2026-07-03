@@ -1,0 +1,10 @@
+# Configuration for cargo-deny, run in CI (see .github/workflows/ci.yml).
+
+[licenses]
+allow = ["MIT", "Apache-2.0", "Unicode-3.0"] # Unicode-3.0 for syn's unicode-ident
+
+[bans]
+multiple-versions = "warn"
+
+[advisories]
+yanked = "deny"

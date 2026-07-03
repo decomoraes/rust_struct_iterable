@@ -1,0 +1,16 @@
+# Compile-only CI fixture. Proves the documented escape hatch for users who
+# bypass the struct_iterable facade and depend on the derive + trait crates
+# directly, redirecting the generated impl's trait path with
+# `#[iterable(crate = "struct_iterable_internal")]`.
+#
+# Deliberately not a workspace member (see `exclude` in the root Cargo.toml).
+
+[package]
+name = "no-facade"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+struct_iterable_derive = { path = "../../struct_iterable_derive" }
+struct_iterable_internal = { path = "../../struct_iterable_internal" }

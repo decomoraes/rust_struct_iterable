@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # weekly: catches new advisories / beta breakage without pushes
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUSTFLAGS: -Dwarnings
+
+jobs:
+  test:
+    name: test (${{ matrix.rust }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rust: [stable, beta]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.rust }}
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace --locked
+
+  # Snapshot tests only on a pinned toolchain: rustc stderr output (trybuild)
+  # and expansion output (macrotest) drift across versions. Snapshots were
+  # generated with rustc 1.95.0; bump deliberately with a
+  # TRYBUILD=overwrite / MACROTEST=overwrite commit.
+  ui:
+    name: trybuild + macrotest snapshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.95.0
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-expand
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --locked -p struct_iterable --test ui --test expand
+
+  msrv:
+    name: MSRV (1.71)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.71.0
+      - uses: Swatinem/rust-cache@v2
+      # check, not test: dev-deps need not honor MSRV
+      - run: cargo check --workspace --locked
+
+  lint:
+    name: fmt + clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -Dwarnings
+
+  doc:
+    name: docs (docs.rs-faithful)
+    runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -Dwarnings --cfg docsrs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/install@cargo-docs-rs
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo docs-rs -p struct_iterable
+
+  minimal-versions:
+    name: minimal dependency versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      # no rust-cache and no --locked: this job rewrites the lockfile
+      - run: cargo update -Zminimal-versions
+      - run: cargo check --workspace
+
+  machete:
+    name: unused dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-machete
+      - run: cargo machete
+
+  semver:
+    name: semver-checks
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: obi1kenobi/cargo-semver-checks-action@v2
+        # virtual root: checks all publishable members; the facade + internal
+        # are the surfaces that matter (proc-macro crates expose ~no
+        # checkable API)
+
+  deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+  # Compile-only compatibility fixtures (not workspace members; they resolve
+  # the published struct_iterable 0.1.1 from crates.io, so they need network).
+  #
+  # - skew-old-facade: published facade 0.1.1 + local derive/internal via
+  #   [patch.crates-io] — proves a new derive release cannot break existing
+  #   0.1.x facade users (the derive flows to them automatically via caret).
+  # - no-facade: derive + internal used directly with
+  #   #[iterable(crate = "struct_iterable_internal")] — proves the documented
+  #   escape hatch for users who bypass the facade.
+  fixtures:
+    name: compat fixtures
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            ci-fixtures/skew-old-facade
+            ci-fixtures/no-facade
+      - run: cargo check
+        working-directory: ci-fixtures/skew-old-facade
+      - run: cargo check
+        working-directory: ci-fixtures/no-facade

@@ -2,3 +2,9 @@
 .idea/
 .vscode/
 *.iml
+
+# ci-fixtures are excluded from the workspace, so they get their own
+# target dirs and lockfiles; neither belongs in git (the fixtures exist
+# to resolve fresh against the registry).
+ci-fixtures/*/Cargo.lock
+ci-fixtures/*/target/
