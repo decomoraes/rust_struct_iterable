@@ -1,0 +1,7 @@
+error: proc-macro derive panicked
+ --> tests/ui/tuple_struct.rs:3:10
+  |
+3 | #[derive(Iterable)]
+  |          ^^^^^^^^
+  |
+  = help: message: Only structs with named fields are supported

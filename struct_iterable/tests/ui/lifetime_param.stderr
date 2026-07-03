@@ -1,0 +1,10 @@
+error[E0726]: implicit elided lifetime not allowed here
+ --> tests/ui/lifetime_param.rs:4:8
+  |
+4 | struct Borrowed<'a> {
+  |        ^^^^^^^^ expected lifetime parameter
+  |
+help: indicate the anonymous lifetime
+  |
+4 | struct Borrowed<'_><'a> {
+  |                ++++

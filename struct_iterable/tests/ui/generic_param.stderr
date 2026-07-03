@@ -1,0 +1,15 @@
+error[E0107]: missing generics for struct `Wrapper`
+ --> tests/ui/generic_param.rs:4:8
+  |
+4 | struct Wrapper<T> {
+  |        ^^^^^^^ expected 1 generic argument
+  |
+note: struct defined here, with 1 generic parameter: `T`
+ --> tests/ui/generic_param.rs:4:8
+  |
+4 | struct Wrapper<T> {
+  |        ^^^^^^^ -
+help: add missing generic argument
+  |
+4 | struct Wrapper<T><T> {
+  |               +++
