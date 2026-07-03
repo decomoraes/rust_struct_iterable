@@ -27,15 +27,15 @@ released in lockstep; this changelog covers all of them.
   structs, unsupported attributes) as spanned `syn::Error` compile errors
   pointing at the offending item, instead of panicking with
   "proc macro panicked".
-- The generated code uses fully qualified paths throughout (hygiene): the
-  derive no longer breaks when `Iterable`, `vec!`, or `Any` are shadowed at
-  the call site.
+- The generated code fully qualifies its `std` paths (`::std::vec!`,
+  `::std::any::Any`), so shadowing `vec!` or `Any` at the call site no
+  longer breaks the derive. The trait path emission is unchanged from
+  0.1.0 (bare `Iterable`, resolved in scope), so 0.1.2 is a drop-in
+  replacement; use the new `#[iterable(crate = "path")]` to opt into an
+  explicit path.
 
 ### Changed
 
-- Behavioral edge of the hygiene fix: generated code now names
-  `::struct_iterable` explicitly — if you depend only on the `_derive` or
-  `_internal` crates, or rename the facade, add `#[iterable(crate = "path")]`.
 - Removed the unused `erased-serde` dependency from the derive crate
   (smaller dependency tree).
 - Relicensed from MIT to MIT OR Apache-2.0.

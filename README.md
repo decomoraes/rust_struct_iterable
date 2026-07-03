@@ -63,9 +63,10 @@ Honest and up front:
 
 ## Renamed the crate?
 
-The generated code refers to `::struct_iterable` by name (proc macros have no
-`$crate`). If you rename the facade in `Cargo.toml`, or re-export it from
-another crate, point the derive at the right path:
+By default the generated impl refers to `Iterable` as it resolves in scope
+at the derive site (proc macros have no `$crate`). If you rename the facade
+in `Cargo.toml`, or re-export it from another crate, you can point the
+derive at an explicit path instead:
 
 ```rust
 use struct_iterable as si;

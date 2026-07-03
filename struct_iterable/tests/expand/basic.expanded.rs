@@ -4,7 +4,7 @@ struct Point {
     y: f32,
 }
 #[automatically_derived]
-impl ::struct_iterable::Iterable for Point
+impl Iterable for Point
 where
     f32: ::std::any::Any,
 {

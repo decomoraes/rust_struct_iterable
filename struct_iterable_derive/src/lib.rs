@@ -26,9 +26,11 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Path};
 ///
 /// # Container attributes
 ///
-/// - `#[iterable(crate = "path")]` — path to the crate that exports the
-///   `Iterable` trait, when `struct_iterable` is renamed in your `Cargo.toml`
-///   or re-exported from another crate. Defaults to `::struct_iterable`.
+/// - `#[iterable(crate = "path")]` — makes the generated impl refer to the
+///   `Iterable` trait through an explicit path (`path::Iterable`), for
+///   facades renamed in `Cargo.toml` or re-exported from another crate.
+///   Without it, the impl names `Iterable` as resolved in scope at the
+///   derive site — exactly as previous releases did.
 ///
 /// # Example
 ///
@@ -59,8 +61,15 @@ pub fn derive_iterable(input: TokenStream) -> TokenStream {
 }
 
 fn expand(input: &DeriveInput) -> syn::Result<TokenStream2> {
-    let crate_path = parse_container_attrs(&input.attrs)?
-        .unwrap_or_else(|| syn::parse_quote!(::struct_iterable));
+    // Default emission is the bare, in-scope `Iterable` — byte-compatible
+    // with what 0.1.0/0.1.1 emitted. This release flows automatically to
+    // every existing 0.1.1 facade user through their caret requirement, so
+    // the default resolution semantics must not change; `#[iterable(crate =
+    // "...")]` opts into an explicit path.
+    let trait_path = match parse_container_attrs(&input.attrs)? {
+        Some(crate_path) => quote!(#crate_path::Iterable),
+        None => quote!(Iterable),
+    };
 
     let fields = match &input.data {
         Data::Struct(data) => match &data.fields {
@@ -120,7 +129,7 @@ fn expand(input: &DeriveInput) -> syn::Result<TokenStream2> {
 
     Ok(quote! {
         #[automatically_derived]
-        impl #impl_generics #crate_path::Iterable for #struct_name #ty_generics #where_clause {
+        impl #impl_generics #trait_path for #struct_name #ty_generics #where_clause {
             fn iter(
                 &self,
             ) -> ::std::vec::IntoIter<(&'static str, &'_ dyn ::std::any::Any)> {
