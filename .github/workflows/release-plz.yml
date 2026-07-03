@@ -1,6 +1,8 @@
-# Publishing requires the CARGO_REGISTRY_TOKEN secret; until it is configured
-# this workflow's release job is a no-op. Manual fallback documented in
-# CONTRIBUTING.
+# Publishing is opt-in twice over: the release job only runs when the
+# repository variable RELEASE_PLZ_ENABLED is set to "true" (Settings ->
+# Secrets and variables -> Actions -> Variables), and it also needs the
+# CARGO_REGISTRY_TOKEN secret. Until both exist, pushes to main only
+# open/update the release PR. Manual fallback documented in CONTRIBUTING.
 name: Release-plz
 
 on:
@@ -15,6 +17,7 @@ jobs:
   release-plz-release:
     name: release
     runs-on: ubuntu-latest
+    if: vars.RELEASE_PLZ_ENABLED == 'true'
     steps:
       - uses: actions/checkout@v4
         with:

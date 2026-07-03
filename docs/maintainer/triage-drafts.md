@@ -55,16 +55,17 @@ to the docs.
 
 ## Issue #2 — iter_mut (plus @mjhouse's two closed, unmerged PRs)
 
-Labels: `enhancement`; milestone 0.2.0. When the release commit lands, it
-carries `Co-authored-by: mjhouse <email-from-their-commits>` and the
-CHANGELOG says "based on work by @mjhouse".
+Labels: `enhancement`; milestone 0.2.0. The CHANGELOG name-check is already
+in place; add `Co-authored-by: mjhouse <email-from-their-commits>` to the
+0.2.0 release commit on publish day (checklist step 2) so the draft below
+stays true.
 
 ```markdown
 This is happening: mutable field access is implemented on `main` and ships
 in 0.2.0. @mjhouse — thank you again for the two earlier PRs; closing them
 back then without a proper resolution wasn't fair, and I want to fix that.
-The implementing commit carries `Co-authored-by:` credit for you, and the
-changelog name-checks the original PRs.
+The changelog name-checks the original PRs, and the 0.2.0 release commit
+will carry `Co-authored-by:` credit for you.
 
 One design note, because the shape is deliberately not a literal
 `iter_mut()`: 0.2.0 adds an `IterableMut` trait (emitted by the same derive,
@@ -111,9 +112,9 @@ still unreleased.
 ## PR #6 (@kaimast) — `#[iterable(ToString)]` attribute
 
 Close with this comment — after the issue #5 comment above is posted, never
-before. Credit plan: `Co-authored-by: kaimast <email-from-their-commits>` on
-the implementation commit if any of the attribute-parsing shape survives,
-plus a CHANGELOG name-check regardless.
+before. Credit plan: the CHANGELOG name-check is already in place; add
+`Co-authored-by: kaimast <email-from-their-commits>` to the 0.2.0 release
+commit on publish day (checklist step 2) so the draft below stays true.
 
 ```markdown
 I'm going to close this one, but to be clear: this is a "superseded", not a
@@ -130,8 +131,9 @@ The design that grew out of your idea is on `main`: an additive `IterableAs`
 trait plus a repeatable `#[iterable(to(dyn Trait))]` attribute, leaving
 `iter()`'s `dyn Any` behavior untouched — and it works for non-`'static`
 structs, which the original couldn't. I'd love your review before 0.2.0 goes
-out (see the discussion on #5). You'll be credited in the commit and
-changelog — this feature exists because you pushed on it.
+out (see the discussion on #5). You're credited in the changelog, and the
+release commit will carry a `Co-authored-by:` trailer for you — this feature
+exists because you pushed on it.
 ```
 
 ## Issue #7 (@Kezii) — no_std
@@ -171,12 +173,13 @@ an intentional plan. Two releases:
   const-generic structs — the compile errors from #1, fixed for `'static`
   uses.
 - Spanned `syn::Error` diagnostics instead of "proc macro panicked".
-- Hygienic generated code (fully qualified paths), with
-  `#[iterable(crate = "...")]` as the escape hatch for renamed or
-  re-exported facades.
+- A new opt-in `#[iterable(crate = "...")]` attribute for renamed or
+  re-exported facades. The default emission is unchanged from 0.1.0, so
+  existing code keeps its exact meaning.
 - Tests (integration + trybuild UI + expansion snapshots), CI, runnable
   examples, rewritten docs; dual-licensed MIT OR Apache-2.0.
-- No API changes: a drop-in replacement for 0.1.1.
+- No breaking changes: one additive attribute, otherwise a drop-in
+  replacement for 0.1.1.
 
 **0.2.0 — no_std, mutation, custom trait objects (implemented on `main`,
 next release)**
@@ -193,6 +196,10 @@ next release)**
 - `iter()` now returns an allocation-free `FieldIter` instead of a
   `Vec` iterator; `field_count`, `field_at`, and by-name `field()` lookup
   added.
+- Hygienic generated code: the emitted impls name `::struct_iterable`
+  explicitly instead of resolving whatever `Iterable` is in scope, with
+  `#[iterable(crate = "...")]` as the escape hatch for renamed facades and
+  non-facade setups.
 
 **Migration safety:** these are 0.x releases, so cargo never auto-upgrades
 anyone across them — `struct_iterable = "0.1"` keeps resolving to 0.1.x
@@ -212,7 +219,7 @@ Suggested labels per item:
 | Item | Labels | Milestone / action |
 |---|---|---|
 | Issue #1 | `bug` | keep open; close after 0.2.0 publishes |
-| Issue #2 | `enhancement` | 0.2.0; Co-authored-by @mjhouse on the commit |
+| Issue #2 | `enhancement` | 0.2.0; add Co-authored-by @mjhouse to the release commit |
 | Issue #5 | `enhancement` | 0.2.0; ask @srid + @kaimast for pre-release review |
 | PR #6 | — | close as superseded (after the #5 comment exists) |
 | Issue #7 | `bug` | 0.2.0 |
@@ -226,7 +233,11 @@ Publish day, in order:
    0.1.2.)
 2. **Then publish 0.2.0 from `main`**, in dependency order:
    `struct_iterable_derive` → `struct_iterable` → `struct_iterable_internal`
-   (the shim depends on the facade, so it goes last). Tag `v0.2.0`.
+   (the shim depends on the facade, so it goes last). Make the release
+   commit (version/date stamp) carry the credit trailers promised in the
+   drafts above: `Co-authored-by: mjhouse <...>` and
+   `Co-authored-by: kaimast <...>` (emails from their commits on PRs #3/#6).
+   Tag `v0.2.0`.
 3. Stamp the release dates in `CHANGELOG.md` (the `0.1.2` and `0.2.0`
    headings) on `main`.
 4. Create the GitHub releases for `v0.1.2` and `v0.2.0` from the tags, with

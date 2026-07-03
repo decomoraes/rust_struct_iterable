@@ -25,8 +25,9 @@ table below.
   `downcast_ref` call sites are untouched. Verified on
   `thumbv7em-none-eabihf`.
 - `FieldIter<'_>`: the allocation-free iterator now returned by `iter()`.
-  Exact-size, double-ended, fused, and `Clone` — a superset of what
-  `std::vec::IntoIter` offered. Plus `IntoIterator for &dyn Iterable`.
+  Exact-size, double-ended, fused, and `Clone` — the trait surface
+  `std::vec::IntoIter` offered (its inherent `as_slice`/`as_mut_slice` have
+  no equivalent). Plus `IntoIterator for &dyn Iterable`.
 - By-index and by-name field access on `Iterable`: `field_count()`,
   `field_at(index)`, and the provided `field(name)`.
 - `IterableMut`, emitted by the same `#[derive(Iterable)]`: `field_at_mut(index)`,
@@ -40,7 +41,7 @@ table below.
   compile error spanned to any field that doesn't implement the trait. Works
   for structs borrowing non-`'static` data — which the `dyn Any` path never
   can. `#[iterable(no_any)]` suppresses the `dyn Any`-based impls. Every
-  `Iterable` type is automatically `IterableAs<dyn Any>`, and
+  sized `Iterable` type is automatically `IterableAs<dyn Any>`, and
   `IterableAsExt::iter_fields_as::<dyn Trait>()` disambiguates structs that
   iterate as several trait objects.
 - Tuple structs (fields named `"0"`, `"1"`, …) and unit structs (an empty
@@ -60,10 +61,15 @@ table below.
   `field_at`, and `iter` (whose body is always `FieldIter::new(self)`).
 - **Breaking:** raw identifiers now yield their bare name: `r#type` yields
   `"type"` (was `"r#type"`), matching serde.
+- **Breaking** for non-facade setups: the generated impls now name
+  `::struct_iterable` explicitly instead of resolving whatever `Iterable`
+  is in scope at the derive site. If you renamed the facade in `Cargo.toml`
+  or depend only on the `_derive`/`_internal` crates, add
+  `#[iterable(crate = "path")]`.
 - The `Iterable` trait moved from `struct_iterable_internal` into the
   `struct_iterable` facade. `struct_iterable_internal` is now a deprecated
-  compatibility shim (`pub use struct_iterable::*`) that receives this one
-  final 0.2.0 release and no further ones.
+  compatibility shim (`pub use struct_iterable::*`); no new API will ever
+  land there — it only receives automated lockstep version bumps.
 - Mutable access builds on work by [@mjhouse](https://github.com/mjhouse) in
   [#3](https://github.com/decomoraes/rust_struct_iterable/pull/3) and
   [#4](https://github.com/decomoraes/rust_struct_iterable/pull/4).
@@ -95,8 +101,12 @@ table below.
 | `.collect()`, `.len()`, `.rev()`, iterator adapters | works unchanged (`FieldIter` is exact-size, double-ended, fused, `Clone`) |
 | `Box<dyn Iterable>` / `&dyn Iterable` | works unchanged |
 | Named the return type `std::vec::IntoIter<...>` | change it to `struct_iterable::FieldIter<'_>` |
+| Called `.as_slice()` / `.as_mut_slice()` on the iterator | gone (they were `vec::IntoIter` inherent methods) — collect into a `Vec` first |
 | Manual `impl Iterable` | implement `field_count`, `field_at`, and `iter` (the `iter` body is always `FieldIter::new(self)`) |
 | Raw-identifier field names (`r#type`) | now yield the bare name: `"type"`, was `"r#type"` — matching serde |
+| Named `struct_iterable_internal::Iterable` in an import or bound | bump `struct_iterable_internal` to 0.2.0 (deprecated shim) in the same update, or switch the path to `struct_iterable::Iterable` — leaving it at 0.1 gives you two distinct traits and E0277 |
+| Another in-scope trait with a method named `field`, `field_count`, or `field_at` | `Iterable` now provides methods with those names; disambiguate with UFCS (`YourTrait::field(&x, ...)`) |
+| Renamed the facade in `Cargo.toml`, or depend only on `_derive`/`_internal` | add `#[iterable(crate = "path")]` — generated code now names `::struct_iterable` by default |
 | Generic, lifetime-parameterized, tuple, or unit structs that failed to compile | newly compile |
 
 ## [0.1.2] - Unreleased
@@ -117,15 +127,15 @@ table below.
   structs, unsupported attributes) as spanned `syn::Error` compile errors
   pointing at the offending item, instead of panicking with
   "proc macro panicked".
-- The generated code uses fully qualified paths throughout (hygiene): the
-  derive no longer breaks when `Iterable`, `vec!`, or `Any` are shadowed at
-  the call site.
+- The generated code fully qualifies its `std` paths (`::std::vec!`,
+  `::std::any::Any`), so shadowing `vec!` or `Any` at the call site no
+  longer breaks the derive. The trait path emission is unchanged from
+  0.1.0 (bare `Iterable`, resolved in scope), so 0.1.2 is a drop-in
+  replacement; use the new `#[iterable(crate = "path")]` to opt into an
+  explicit path.
 
 ### Changed
 
-- Behavioral edge of the hygiene fix: generated code now names
-  `::struct_iterable` explicitly — if you depend only on the `_derive` or
-  `_internal` crates, or rename the facade, add `#[iterable(crate = "path")]`.
 - Removed the unused `erased-serde` dependency from the derive crate
   (smaller dependency tree).
 - Relicensed from MIT to MIT OR Apache-2.0.

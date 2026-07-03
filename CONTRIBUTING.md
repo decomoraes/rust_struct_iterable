@@ -15,9 +15,9 @@ released in lockstep:
 
 | Crate | Role |
 |---|---|
-| `struct_iterable/` | The facade — the only crate users depend on. Re-exports the derive macro and the trait. **All tests and examples live here** (`struct_iterable/tests/`, `struct_iterable/examples/`). |
+| `struct_iterable/` | The facade — the only crate users depend on. Defines the `Iterable`/`IterableMut`/`IterableAs` traits and the `FieldIter`/`FieldIterAs` iterators, and re-exports the derive macro. **All tests and examples live here** (`struct_iterable/tests/`, `struct_iterable/examples/`). |
 | `struct_iterable_derive/` | The `#[derive(Iterable)]` proc macro. Implementation detail. |
-| `struct_iterable_internal/` | The `Iterable` trait definition. Implementation detail. |
+| `struct_iterable_internal/` | Deprecated compatibility shim re-exporting the facade, kept for 0.1-era dependents. No new API ever lands here. |
 
 Tests live in the facade because a proc-macro crate cannot invoke its own
 macro in unit tests, and because fixtures should exercise exactly what a user
@@ -26,20 +26,25 @@ writes (`use struct_iterable::Iterable;`) — including re-export hygiene.
 ## Commands
 
 ```sh
-# Everything: unit, integration, UI, expansion, and doctests
-# (the README's code blocks are doctests too, via include_str!):
+# Unit, integration, and doctests (the README's code blocks are doctests
+# too, via include_str!):
 cargo test --workspace
 
-# Refresh trybuild stderr snapshots after changing a diagnostic:
-TRYBUILD=overwrite cargo test -p struct_iterable --test ui
+# Snapshot tests (trybuild UI + macrotest expansion) are gated behind
+# SNAPSHOT_TESTS because their output drifts across toolchains — CI runs
+# them on a pinned toolchain. Requires: cargo install cargo-expand
+SNAPSHOT_TESTS=1 cargo test -p struct_iterable --test ui --test expand
 
-# Refresh macrotest expansion snapshots after changing codegen
-# (requires: cargo install cargo-expand):
-MACROTEST=overwrite cargo test -p struct_iterable --test expand
+# Refresh trybuild stderr snapshots after changing a diagnostic:
+SNAPSHOT_TESTS=1 TRYBUILD=overwrite cargo test -p struct_iterable --test ui
+
+# Refresh macrotest expansion snapshots after changing codegen:
+SNAPSHOT_TESTS=1 MACROTEST=overwrite cargo test -p struct_iterable --test expand
 
 # Run the examples:
 cargo run -p struct_iterable --example basic
 cargo run -p struct_iterable --example config_validation
+cargo run -p struct_iterable --example custom_trait
 ```
 
 ## The one hard rule
@@ -84,9 +89,11 @@ that explicit approval:
    (one tag per release, never per-crate tags), and creates the GitHub
    release.
 
-The release job needs the `CARGO_REGISTRY_TOKEN` repository secret (a
-crates.io token scoped to publish-update). Until that secret is configured,
-the release job is a no-op and releases use the manual process below.
+The release job is double-gated: it only runs when the repository variable
+`RELEASE_PLZ_ENABLED` is `"true"`, and it needs the `CARGO_REGISTRY_TOKEN`
+repository secret (a crates.io token scoped to publish-update). Until both
+are configured, pushes to `main` only open/update the release PR and
+releases use the manual process below.
 
 ### Manual fallback
 

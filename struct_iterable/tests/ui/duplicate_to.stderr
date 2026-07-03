@@ -1,0 +1,5 @@
+error: duplicate `to(...)` target: this trait object is already requested
+ --> tests/ui/duplicate_to.rs:5:15
+  |
+5 | #[iterable(to(dyn std::fmt::Debug))]
+  |               ^^^^^^^^^^^^^^^^^^^

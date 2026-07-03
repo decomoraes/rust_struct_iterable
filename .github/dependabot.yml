@@ -10,3 +10,4 @@ updates:
       interval: monthly
     # lockfile-only bumps; version-requirement bumps stay manual to protect
     # the minimal-versions CI job
+    versioning-strategy: lockfile-only

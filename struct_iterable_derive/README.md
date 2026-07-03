@@ -1,7 +1,12 @@
-# Struct Iterable Derive
+# struct_iterable_derive
 
-This crate is a supporting library for the `struct_iterable` crate. It provides the proc macro `Iterable` which is used in conjunction with the `struct_iterable_internal` crate to provide an easy way to make a struct iterable in Rust.
+Implementation detail of
+[`struct_iterable`](https://crates.io/crates/struct_iterable): the
+`#[derive(Iterable)]` proc macro. The traits and iterators it implements
+(`Iterable`, `IterableMut`, `IterableAs`, `FieldIter`) live in the
+`struct_iterable` facade.
 
-**Please note:** This crate is not intended to be used directly. If you want to make your structs iterable, please use the `struct_iterable` crate instead.
-
-Please visit the [`struct_iterable` crate on crates.io](https://crates.io/crates/struct_iterable) for more information and usage examples.
+**Do not depend on this crate directly** — its API is only guaranteed through
+the facade. See [`struct_iterable` on
+crates.io](https://crates.io/crates/struct_iterable) for documentation and
+examples.

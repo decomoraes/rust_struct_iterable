@@ -5,11 +5,15 @@
 # See CONTRIBUTING.md ("Releases") for the full flow and the manual fallback.
 
 [workspace]
-changelog_update = true
-git_release_enable = true
 semver_check = true
-# Single lockstep tag per release (e.g. v0.2.0), not per-crate tags.
-git_tag_name = "v{{ version }}"
+# The single source of truth for releases is the facade: one root
+# CHANGELOG.md, one git tag (v{version}), one GitHub release. The derive and
+# internal crates are published in lockstep but get no tags/releases/changelog
+# of their own — three packages rendering the same "v{{ version }}" tag name
+# would collide.
+changelog_update = false
+git_tag_enable = false
+git_release_enable = false
 
 # All three crates are versioned and released in lockstep. Note: members of a
 # version_group with no changes of their own only re-release when a path-dep
@@ -19,6 +23,12 @@ git_tag_name = "v{{ version }}"
 [[package]]
 name = "struct_iterable"
 version_group = "main"
+changelog_update = true
+changelog_path = "CHANGELOG.md"
+git_tag_enable = true
+git_tag_name = "v{{ version }}"
+git_release_enable = true
+git_release_name = "v{{ version }}"
 
 [[package]]
 name = "struct_iterable_derive"

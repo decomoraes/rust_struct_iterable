@@ -3,8 +3,8 @@
 //!
 //! Since 0.2.0 the `Iterable` trait lives in the `struct_iterable` facade
 //! itself; this crate is a compatibility shim that re-exports everything from
-//! there. Depend on `struct_iterable` directly — this crate will receive no
-//! further releases.
+//! there. Depend on `struct_iterable` directly — no new API will ever land
+//! here; this crate only receives automated lockstep version bumps.
 
 #![no_std]
 

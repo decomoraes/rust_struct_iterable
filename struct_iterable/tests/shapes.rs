@@ -2,7 +2,7 @@
 //! structs, empty structs, `#[iterable(skip)]`, `#[iterable(rename)]`.
 
 use std::any::Any;
-use struct_iterable::Iterable;
+use struct_iterable::{Iterable, IterableMut};
 
 #[derive(Iterable)]
 struct Wrapper(u32, String);
@@ -95,6 +95,20 @@ fn renamed_fields_yield_the_new_name() {
     let t = RenamedTuple(5, 6);
     let names: Vec<&'static str> = t.iter().map(|(name, _)| name).collect();
     assert_eq!(names, ["inner", "1"]);
+}
+
+#[test]
+fn mutable_by_name_lookup_uses_the_renamed_name() {
+    let mut r = Renamed {
+        flake_enabled: false,
+        plain: 0,
+    };
+    *r.field_mut("flake-enabled")
+        .unwrap()
+        .downcast_mut::<bool>()
+        .unwrap() = true;
+    assert!(r.flake_enabled);
+    assert!(r.field_mut("flake_enabled").is_none());
 }
 
 #[test]

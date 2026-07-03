@@ -36,12 +36,16 @@ jobs:
       - run: cargo test --workspace --locked
 
   # Snapshot tests only on a pinned toolchain: rustc stderr output (trybuild)
-  # and expansion output (macrotest) drift across versions. Snapshots were
-  # generated with rustc 1.95.0; bump deliberately with a
+  # and expansion output (macrotest) drift across versions, and macrotest
+  # needs cargo-expand installed. The test binaries no-op unless
+  # SNAPSHOT_TESTS is set, so the stable/beta matrix skips them safely.
+  # Snapshots were generated with rustc 1.95.0; bump deliberately with a
   # TRYBUILD=overwrite / MACROTEST=overwrite commit.
   ui:
     name: trybuild + macrotest snapshots
     runs-on: ubuntu-latest
+    env:
+      SNAPSHOT_TESTS: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@1.95.0

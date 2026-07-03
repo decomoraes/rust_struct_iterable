@@ -135,6 +135,90 @@ fn iter_as_iterator_capabilities() {
     assert_eq!(cloned, 2);
 }
 
+// A generic struct with its own where clause: the per-field bounds must
+// compose with the user's generics on the to() path too.
+#[derive(Iterable)]
+#[iterable(to(dyn Checkable))]
+struct GenericChecked<T>
+where
+    T: Clone,
+{
+    value: T,
+    load: f64,
+}
+
+#[test]
+fn generic_struct_with_where_clause_iterates_as_custom_trait() {
+    let g = GenericChecked {
+        value: 0.25f64,
+        load: 1.5,
+    };
+    assert!(g
+        .iter_fields_as::<dyn Checkable>()
+        .all(|(_, check)| check.ok()));
+    // The dyn Any path coexists (GenericChecked<f64> is fully 'static).
+    assert_eq!(g.field_count(), 2);
+}
+
+// The derive must not collide with a struct that declares the very lifetime
+// name the macro uses for its fresh intersection lifetime (regression test:
+// the generated lifetime is picked to be unused).
+#[derive(Iterable)]
+#[iterable(to(dyn Checkable), no_any)]
+struct OwnIterLifetime<'__i> {
+    caches: Caches<'__i>,
+}
+
+#[test]
+fn struct_declaring_the_macros_lifetime_name_still_derives() {
+    let owned = String::from("cache");
+    let o = OwnIterLifetime {
+        caches: Caches(&owned),
+    };
+    assert_eq!(o.field_count_as(), 1);
+    assert!(o.iter_as().all(|(_, check)| check.ok()));
+}
+
+// no_any + to(dyn Any): the ONLY way to keep dyn Any iteration while
+// suppressing the Iterable/IterableMut surface. Must not be rejected as
+// "redundant" (regression test) and must not conflict with the blanket
+// bridge (the struct is not Iterable, so the blanket impl never applies).
+#[derive(Iterable)]
+#[iterable(no_any, to(dyn Any))]
+struct OnlyAsAny {
+    x: u32,
+}
+
+#[test]
+fn no_any_with_to_dyn_any_yields_only_the_iterable_as_impl() {
+    let o = OnlyAsAny { x: 9 };
+    let fields: Vec<(&'static str, &dyn Any)> = o.iter_as().collect();
+    assert_eq!(fields.len(), 1);
+    assert_eq!(fields[0].1.downcast_ref::<u32>(), Some(&9));
+}
+
+// Tuple and unit structs on the to() path.
+#[derive(Iterable)]
+#[iterable(to(dyn Display))]
+struct TupleDisplay(u32, f64);
+
+#[derive(Iterable)]
+#[iterable(to(dyn Checkable))]
+struct UnitChecked;
+
+#[test]
+fn tuple_and_unit_structs_iterate_as_custom_traits() {
+    let t = TupleDisplay(7, 2.5);
+    let rendered: Vec<String> = t
+        .iter_fields_as::<dyn Display>()
+        .map(|(name, value)| format!("{name}={value}"))
+        .collect();
+    assert_eq!(rendered, ["0=7", "1=2.5"]);
+
+    let u = UnitChecked;
+    assert_eq!(u.iter_fields_as::<dyn Checkable>().count(), 0);
+}
+
 #[test]
 fn works_through_a_trait_object_of_iterable_as() {
     let owned = String::from("cache");

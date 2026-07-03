@@ -33,7 +33,11 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Path, TypeTraitObject};
 /// };
 ///
 /// for (field_name, field_value) in my_instance.iter() {
-///     println!("{}: {:?}", field_name, field_value);
+///     if let Some(number) = field_value.downcast_ref::<i32>() {
+///         println!("{field_name}: {number}");
+///     } else if let Some(text) = field_value.downcast_ref::<String>() {
+///         println!("{field_name}: {text}");
+///     }
 /// }
 /// ```
 #[proc_macro_derive(Iterable, attributes(iterable))]
@@ -69,17 +73,72 @@ fn expand(input: &DeriveInput) -> syn::Result<TokenStream2> {
             "`#[iterable(no_any)]` without any `to(dyn Trait)` would generate no impls at all",
         ));
     }
+    validate_to_targets(&attrs)?;
 
     let fields = collect_fields(input)?;
+    let lifetime = fresh_lifetime(&input.generics);
 
     let mut output = TokenStream2::new();
     if !attrs.no_any {
         output.extend(expand_any_impls(input, &krate, &fields));
     }
     for trait_object in &attrs.to {
-        output.extend(expand_as_impl(input, &krate, &fields, trait_object));
+        output.extend(expand_as_impl(
+            input,
+            &krate,
+            &fields,
+            trait_object,
+            &lifetime,
+        ));
     }
     Ok(output)
+}
+
+/// Cross-attribute validation that needs the full container picture:
+/// `to(dyn Any)` is only redundant while the dyn Any impls exist, and
+/// duplicate targets would otherwise surface as an opaque E0119.
+fn validate_to_targets(attrs: &ContainerAttrs) -> syn::Result<()> {
+    let mut seen = HashSet::new();
+    let mut error: Option<syn::Error> = None;
+    let mut push = |new: syn::Error| match &mut error {
+        Some(error) => error.combine(new),
+        None => error = Some(new),
+    };
+    for trait_object in &attrs.to {
+        if !attrs.no_any && is_any_trait_object(trait_object) {
+            push(syn::Error::new_spanned(
+                trait_object,
+                "`to(dyn Any)` is redundant: every `Iterable` already implements \
+                 `IterableAs<dyn Any>`; combine it with `no_any` if you want dyn Any \
+                 iteration without the `Iterable`/`IterableMut` impls",
+            ));
+        }
+        if !seen.insert(quote!(#trait_object).to_string()) {
+            push(syn::Error::new_spanned(
+                trait_object,
+                "duplicate `to(...)` target: this trait object is already requested",
+            ));
+        }
+    }
+    match error {
+        Some(error) => Err(error),
+        None => Ok(()),
+    }
+}
+
+/// A lifetime that cannot collide with the input's own lifetime parameters
+/// (lifetimes are not hygienic across macro expansion, so a struct declaring
+/// `'__i` itself would otherwise produce E0403).
+fn fresh_lifetime(generics: &syn::Generics) -> syn::Lifetime {
+    let taken: HashSet<String> = generics
+        .lifetimes()
+        .map(|def| def.lifetime.ident.to_string())
+        .collect();
+    let mut name = String::from("__i");
+    while taken.contains(&name) {
+        name.push('_');
+    }
+    syn::Lifetime::new(&format!("'{name}"), proc_macro2::Span::call_site())
 }
 
 /// Validate the struct shape and flatten its non-skipped fields into
@@ -236,16 +295,17 @@ fn expand_any_impls(input: &DeriveInput, krate: &Path, fields: &[FieldInfo]) -> 
     }
 }
 
-/// One `IterableAs<dyn Trait + '__i>` impl for a `to(dyn Trait)` request.
+/// One `IterableAs<dyn Trait + 'lt>` impl for a `to(dyn Trait)` request.
 ///
-/// The fresh `'__i` lifetime intersects the struct's lifetimes through the
-/// per-field `FieldTy: Trait + '__i` predicates, so this works for structs
+/// The fresh lifetime intersects the struct's lifetimes through the
+/// per-field `FieldTy: Trait + 'lt` predicates, so this works for structs
 /// borrowing non-`'static` data — unlike the `dyn Any` path.
 fn expand_as_impl(
     input: &DeriveInput,
     krate: &Path,
     fields: &[FieldInfo],
     trait_object: &TypeTraitObject,
+    lifetime: &syn::Lifetime,
 ) -> TokenStream2 {
     let struct_name = &input.ident;
     let field_count = fields.len();
@@ -254,7 +314,7 @@ fn expand_as_impl(
     let (_, ty_generics, _) = input.generics.split_for_impl();
 
     let mut generics = input.generics.clone();
-    generics.params.insert(0, syn::parse_quote!('__i));
+    generics.params.insert(0, syn::parse_quote!(#lifetime));
     {
         let where_clause = generics.make_where_clause();
         let mut seen = HashSet::new();
@@ -262,7 +322,7 @@ fn expand_as_impl(
             let ty = field.ty;
             if seen.insert(quote!(#ty).to_string()) {
                 where_clause.predicates.push(syn::parse_quote_spanned!(
-                    ty.span() => #ty: #bounds + '__i
+                    ty.span() => #ty: #bounds + #lifetime
                 ));
             }
         }
@@ -280,14 +340,14 @@ fn expand_as_impl(
         let member = &field.member;
         quote! {
             #i => ::core::option::Option::Some(
-                (#name, &self.#member as &(dyn #bounds + '__i)),
+                (#name, &self.#member as &(dyn #bounds + #lifetime)),
             ),
         }
     });
 
     quote! {
         #[automatically_derived]
-        impl #impl_generics #krate::IterableAs<dyn #bounds + '__i>
+        impl #impl_generics #krate::IterableAs<dyn #bounds + #lifetime>
             for #struct_name #ty_generics #where_clause
         {
             #[inline]
@@ -298,7 +358,7 @@ fn expand_as_impl(
             fn field_at_as(
                 &self,
                 #index_param: usize,
-            ) -> ::core::option::Option<(&'static str, &(dyn #bounds + '__i))> {
+            ) -> ::core::option::Option<(&'static str, &(dyn #bounds + #lifetime))> {
                 match #index_param {
                     #(#arms)*
                     _ => ::core::option::Option::None,
@@ -306,7 +366,7 @@ fn expand_as_impl(
             }
 
             #[inline]
-            fn iter_as(&self) -> #krate::FieldIterAs<'_, dyn #bounds + '__i> {
+            fn iter_as(&self) -> #krate::FieldIterAs<'_, dyn #bounds + #lifetime> {
                 #krate::FieldIterAs::new(self)
             }
         }
@@ -356,30 +416,30 @@ fn validate_trait_object(trait_object: &TypeTraitObject) -> syn::Result<()> {
             "write the trait object with `dyn`: `to(dyn Trait)`",
         ));
     }
-    let mut trait_bounds = Vec::new();
     for bound in &trait_object.bounds {
-        match bound {
-            syn::TypeParamBound::Lifetime(lifetime) => {
-                return Err(syn::Error::new_spanned(
-                    lifetime,
-                    "the lifetime of the trait object is inserted automatically; \
-                     remove the explicit lifetime",
-                ));
-            }
-            syn::TypeParamBound::Trait(bound) => trait_bounds.push(bound),
-            _ => {}
-        }
-    }
-    if let [only] = trait_bounds[..] {
-        if is_any_path(&only.path) {
+        if let syn::TypeParamBound::Lifetime(lifetime) = bound {
             return Err(syn::Error::new_spanned(
-                trait_object,
-                "`to(dyn Any)` is redundant: every `Iterable` already implements \
-                 `IterableAs<dyn Any>`",
+                lifetime,
+                "the lifetime of the trait object is inserted automatically; \
+                 remove the explicit lifetime",
             ));
         }
     }
     Ok(())
+}
+
+/// Whether the requested trait object is `dyn Any` (a single trait bound
+/// naming the standard `Any`).
+fn is_any_trait_object(trait_object: &TypeTraitObject) -> bool {
+    let trait_bounds: Vec<_> = trait_object
+        .bounds
+        .iter()
+        .filter_map(|bound| match bound {
+            syn::TypeParamBound::Trait(bound) => Some(bound),
+            _ => None,
+        })
+        .collect();
+    matches!(trait_bounds[..], [only] if is_any_path(&only.path))
 }
 
 /// Recognizes `Any`, `core::any::Any`, and `std::any::Any` (with or without a

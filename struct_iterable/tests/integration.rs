@@ -82,6 +82,15 @@ fn works_through_a_boxed_trait_object() {
 }
 
 #[test]
+fn by_name_lookup_uses_the_yielded_name_for_raw_identifiers() {
+    let s = sample();
+    // `r#type` yields "type" (0.2 behavior), and `field` matches that name —
+    // not the raw spelling.
+    assert!(s.field("type").is_some());
+    assert!(s.field("r#type").is_none());
+}
+
+#[test]
 fn single_field_struct_works() {
     #[derive(Iterable)]
     struct One {

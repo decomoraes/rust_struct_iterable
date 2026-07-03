@@ -1,0 +1,16 @@
+error[E0599]: no method named `iter` found for struct `NoAny` in the current scope
+  --> tests/ui/no_any_iter.rs:16:16
+   |
+10 | struct NoAny {
+   | ------------ method `iter` not found for this struct
+...
+16 |     for _ in n.iter() {}
+   |                ^^^^
+   |
+   = help: items from traits can only be used if the trait is implemented and in scope
+   = note: the following trait defines an item `iter`, perhaps you need to implement it:
+           candidate #1: `Iterable`
+help: there is a method `iter_as` with a similar name
+   |
+16 |     for _ in n.iter_as() {}
+   |                    +++

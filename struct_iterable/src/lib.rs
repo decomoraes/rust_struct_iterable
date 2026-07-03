@@ -76,17 +76,22 @@ pub use struct_iterable_derive::Iterable;
 ///   double-ended, fused, works with every iterator adapter.
 /// - The trait must be in scope to call `.iter()`:
 ///   `use struct_iterable::Iterable;`.
-/// - The trait is object-safe: `Box<dyn Iterable>` supports the full API,
-///   including `.iter()`.
+/// - The trait is object-safe: `Box<dyn Iterable>` supports every method on
+///   this trait, including `.iter()`. (Trait objects don't get the blanket
+///   [`IterableAs<dyn Any>`](IterableAs) bridge, which needs a sized type —
+///   call `.iter()` on them instead.)
 ///
 /// # Manual implementations
 ///
 /// Derive when you can. When you can't, implement `field_count`, `field_at`,
 /// and `iter` (whose body is always `FieldIter::new(self)`). `field_at(i)`
 /// must return `Some` for every `i < field_count()` and `None` otherwise,
-/// with a stable order; violating this makes iterators end early — it can
-/// never cause memory unsafety (this crate has no unsafe code and nothing
-/// relies on the contract for safety).
+/// with a stable order. Violating this makes the iterators misbehave —
+/// items may be skipped or yielded after a `None` (even through `.fuse()`,
+/// since [`FieldIter`] advertises [`FusedIterator`]), and a lying
+/// `field_count` makes `size_hint` lie, which can make `collect()` panic —
+/// but it can never cause memory unsafety (this crate has no unsafe code and
+/// nothing relies on the contract for safety).
 ///
 /// # Example
 ///
@@ -209,7 +214,9 @@ pub trait IterableMut: Iterable {
 /// Unlike the `dyn Any` path, this works for structs borrowing
 /// non-`'static` data: `&dyn Trait` does not require `'static`.
 ///
-/// Every [`Iterable`] type is automatically `IterableAs<dyn Any>`.
+/// Every sized [`Iterable`] type is automatically `IterableAs<dyn Any>`
+/// (trait objects like `dyn Iterable` are excluded — the bridge needs the
+/// unsize coercion, so call `.iter()` on them instead).
 ///
 /// # Example
 ///
@@ -247,8 +254,10 @@ pub trait IterableAs<Dyn: ?Sized> {
     fn iter_as(&self) -> FieldIterAs<'_, Dyn>;
 }
 
-/// Every [`Iterable`] type iterates as `dyn Any` through the general
-/// mechanism too.
+/// Every sized [`Iterable`] type iterates as `dyn Any` through the general
+/// mechanism too. (`dyn Iterable` itself can't take part: the impl body
+/// needs the `&T -> &dyn IterableAs<dyn Any>` unsize coercion, which only
+/// exists for sized types.)
 impl<T: Iterable> IterableAs<dyn Any> for T {
     #[inline]
     fn field_count_as(&self) -> usize {
@@ -268,6 +277,29 @@ impl<T: Iterable> IterableAs<dyn Any> for T {
 
 /// Turbofish ergonomics when a struct implements [`IterableAs`] for several
 /// trait objects: `value.iter_fields_as::<dyn Trait>()`.
+///
+/// # Example
+///
+/// ```
+/// use struct_iterable::{Iterable, IterableAsExt};
+///
+/// #[derive(Iterable)]
+/// #[iterable(to(dyn std::fmt::Display))]
+/// struct Stats {
+///     jobs: u32,
+///     load: f64,
+/// }
+///
+/// let stats = Stats { jobs: 2, load: 0.5 };
+///
+/// // `Stats` iterates both as `dyn Display` (requested) and as `dyn Any`
+/// // (automatic); the turbofish picks which:
+/// let rendered: Vec<String> = stats
+///     .iter_fields_as::<dyn std::fmt::Display>()
+///     .map(|(name, value)| format!("{name}={value}"))
+///     .collect();
+/// assert_eq!(rendered, ["jobs=2", "load=0.5"]);
+/// ```
 pub trait IterableAsExt {
     /// Like [`IterableAs::iter_as`], with the trait object chosen at the call
     /// site.
@@ -286,7 +318,10 @@ impl<T: ?Sized> IterableAsExt for T {}
 ///
 /// Yields `(&'static str, &dyn Any)` in declaration order. Implements
 /// [`ExactSizeIterator`], [`DoubleEndedIterator`], [`FusedIterator`], and
-/// [`Clone`], so everything `std::vec::IntoIter` offered keeps working.
+/// [`Clone`] — the trait surface `std::vec::IntoIter` offered, so adapter
+/// chains, `len()`, and `rev()` keep working. (`vec::IntoIter`'s inherent
+/// `as_slice`/`as_mut_slice` have no equivalent here; collect first if you
+/// need a slice.)
 pub struct FieldIter<'a> {
     obj: &'a (dyn Iterable + 'a),
     front: usize,

@@ -209,8 +209,12 @@ needs no changes: if you write `for (name, value) in x.iter()` and
 | `.collect()`, `.len()`, `.rev()`, iterator adapters | works unchanged (`FieldIter` is exact-size, double-ended, fused, `Clone`) |
 | `Box<dyn Iterable>` / `&dyn Iterable` | works unchanged |
 | Named the return type `std::vec::IntoIter<...>` | change it to `struct_iterable::FieldIter<'_>` |
+| Called `.as_slice()` / `.as_mut_slice()` on the iterator | gone (they were `vec::IntoIter` inherent methods) — collect into a `Vec` first |
 | Manual `impl Iterable` | implement `field_count`, `field_at`, and `iter` (the `iter` body is always `FieldIter::new(self)`) |
 | Raw-identifier field names (`r#type`) | now yield the bare name: `"type"`, was `"r#type"` — matching serde |
+| Named `struct_iterable_internal::Iterable` in an import or bound | bump `struct_iterable_internal` to 0.2.0 (deprecated shim) in the same update, or switch the path to `struct_iterable::Iterable` — leaving it at 0.1 gives you two distinct traits and E0277 |
+| Another in-scope trait with a method named `field`, `field_count`, or `field_at` | `Iterable` now provides methods with those names; disambiguate with UFCS (`YourTrait::field(&x, ...)`) |
+| Renamed the facade in `Cargo.toml`, or depend only on `_derive`/`_internal` | add `#[iterable(crate = "path")]` — generated code now names `::struct_iterable` by default |
 | Generic, lifetime-parameterized, tuple, or unit structs that failed to compile | newly compile |
 
 The `Iterable` trait now lives in this crate rather than in
