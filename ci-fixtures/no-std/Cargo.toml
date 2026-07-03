@@ -1,0 +1,8 @@
+[package]
+name = "no-std"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+struct_iterable = { path = "../../struct_iterable" }

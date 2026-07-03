@@ -1,9 +1,13 @@
-//! Baseline integration tests.
+//! Core integration tests.
 //!
-//! These lock in the observable behavior of `#[derive(Iterable)]` as of
-//! v0.1.1: field order, name strings, `dyn Any` identity of the yielded
-//! values, and the iterator capabilities user code relies on. Any change
-//! that makes one of these fail is a breaking change for downstream users.
+//! These lock in the observable behavior of `#[derive(Iterable)]`: field
+//! order, name strings, `dyn Any` identity of the yielded values, and the
+//! iterator capabilities user code relies on. Any change that makes one of
+//! these fail is a breaking change for downstream users.
+//!
+//! Note (0.2.0): raw identifiers now yield their bare name — `r#type` is
+//! `"type"`, not `"r#type"` — matching serde. Recorded in the CHANGELOG
+//! migration table.
 
 use std::any::Any;
 use struct_iterable::Iterable;
@@ -28,7 +32,7 @@ fn sample() -> Basic {
 #[test]
 fn yields_fields_in_declaration_order_with_names() {
     let names: Vec<&'static str> = sample().iter().map(|(name, _)| name).collect();
-    assert_eq!(names, ["id", "name", "maybe", "r#type"]);
+    assert_eq!(names, ["id", "name", "maybe", "type"]);
 }
 
 #[test]
@@ -53,7 +57,7 @@ fn iterator_supports_len_rev_and_adapters() {
     assert_eq!(s.iter().count(), 4);
 
     let reversed: Vec<&'static str> = s.iter().rev().map(|(name, _)| name).collect();
-    assert_eq!(reversed, ["r#type", "maybe", "name", "id"]);
+    assert_eq!(reversed, ["type", "maybe", "name", "id"]);
 
     let filtered: Vec<&'static str> = s
         .iter()
@@ -67,7 +71,14 @@ fn iterator_supports_len_rev_and_adapters() {
 fn works_through_a_boxed_trait_object() {
     let boxed: Box<dyn Iterable> = Box::new(sample());
     let names: Vec<&'static str> = boxed.iter().map(|(name, _)| name).collect();
-    assert_eq!(names, ["id", "name", "maybe", "r#type"]);
+    assert_eq!(names, ["id", "name", "maybe", "type"]);
+
+    // `for` over a trait object reference also works (IntoIterator).
+    let mut count = 0;
+    for (_name, _value) in &*boxed {
+        count += 1;
+    }
+    assert_eq!(count, 4);
 }
 
 #[test]

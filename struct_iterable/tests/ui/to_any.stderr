@@ -1,0 +1,5 @@
+error: `to(dyn Any)` is redundant: every `Iterable` already implements `IterableAs<dyn Any>`
+ --> tests/ui/to_any.rs:4:15
+  |
+4 | #[iterable(to(dyn std::any::Any))]
+  |               ^^^^^^^^^^^^^^^^^

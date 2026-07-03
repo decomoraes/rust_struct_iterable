@@ -6,19 +6,55 @@ struct Point {
 #[automatically_derived]
 impl ::struct_iterable::Iterable for Point
 where
-    f32: ::std::any::Any,
+    f32: ::core::any::Any,
 {
-    fn iter(&self) -> ::std::vec::IntoIter<(&'static str, &'_ dyn ::std::any::Any)> {
-        ::alloc::boxed::box_assume_init_into_vec_unsafe(
-                ::alloc::intrinsics::write_box_via_move(
-                    ::alloc::boxed::Box::new_uninit(),
-                    [
-                        ("x", &(self.x) as &dyn ::std::any::Any),
-                        ("y", &(self.y) as &dyn ::std::any::Any),
-                    ],
-                ),
-            )
-            .into_iter()
+    #[inline]
+    fn field_count(&self) -> usize {
+        2usize
+    }
+    fn field_at(
+        &self,
+        index: usize,
+    ) -> ::core::option::Option<(&'static str, &dyn ::core::any::Any)> {
+        match index {
+            0usize => {
+                ::core::option::Option::Some(("x", &self.x as &dyn ::core::any::Any))
+            }
+            1usize => {
+                ::core::option::Option::Some(("y", &self.y as &dyn ::core::any::Any))
+            }
+            _ => ::core::option::Option::None,
+        }
+    }
+    #[inline]
+    fn iter(&self) -> ::struct_iterable::FieldIter<'_> {
+        ::struct_iterable::FieldIter::new(self)
+    }
+}
+#[automatically_derived]
+impl ::struct_iterable::IterableMut for Point
+where
+    f32: ::core::any::Any,
+{
+    fn field_at_mut(
+        &mut self,
+        index: usize,
+    ) -> ::core::option::Option<(&'static str, &mut dyn ::core::any::Any)> {
+        match index {
+            0usize => {
+                ::core::option::Option::Some((
+                    "x",
+                    &mut self.x as &mut dyn ::core::any::Any,
+                ))
+            }
+            1usize => {
+                ::core::option::Option::Some((
+                    "y",
+                    &mut self.y as &mut dyn ::core::any::Any,
+                ))
+            }
+            _ => ::core::option::Option::None,
+        }
     }
 }
 fn main() {}

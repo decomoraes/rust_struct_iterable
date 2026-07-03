@@ -1,0 +1,5 @@
+error: the lifetime of the trait object is inserted automatically; remove the explicit lifetime
+ --> tests/ui/to_explicit_lifetime.rs:4:37
+  |
+4 | #[iterable(to(dyn std::fmt::Debug + 'static))]
+  |                                     ^^^^^^^

@@ -123,27 +123,28 @@ jobs:
       - uses: actions/checkout@v4
       - uses: EmbarkStudios/cargo-deny-action@v2
 
-  # Compile-only compatibility fixtures (not workspace members; they resolve
-  # the published struct_iterable 0.1.1 from crates.io, so they need network).
+  # Compile-only compatibility fixtures (not workspace members).
   #
-  # - skew-old-facade: published facade 0.1.1 + local derive/internal via
-  #   [patch.crates-io] — proves a new derive release cannot break existing
-  #   0.1.x facade users (the derive flows to them automatically via caret).
   # - no-facade: derive + internal used directly with
   #   #[iterable(crate = "struct_iterable_internal")] — proves the documented
   #   escape hatch for users who bypass the facade.
+  # - no-std: a #![no_std] library deriving Iterable, built for a bare-metal
+  #   target with no std at all — the regression test issue #7 actually needs.
   fixtures:
     name: compat fixtures
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: thumbv7em-none-eabihf
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
-            ci-fixtures/skew-old-facade
             ci-fixtures/no-facade
-      - run: cargo check
-        working-directory: ci-fixtures/skew-old-facade
+            ci-fixtures/no-std
       - run: cargo check
         working-directory: ci-fixtures/no-facade
+      - run: cargo check --target thumbv7em-none-eabihf
+        working-directory: ci-fixtures/no-std
+      - run: cargo build -p struct_iterable --target thumbv7em-none-eabihf --locked

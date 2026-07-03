@@ -1,0 +1,5 @@
+error: `#[iterable(no_any)]` without any `to(dyn Trait)` would generate no impls at all
+ --> tests/ui/no_any_alone.rs:5:8
+  |
+5 | struct Config {
+  |        ^^^^^^

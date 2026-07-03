@@ -1,5 +1,0 @@
-error: `#[derive(Iterable)]` currently supports only structs with named fields
- --> tests/ui/unit_struct.rs:4:8
-  |
-4 | struct Nothing;
-  |        ^^^^^^^

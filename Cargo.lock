@@ -158,17 +158,16 @@ dependencies = [
 
 [[package]]
 name = "struct_iterable"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "macrotest",
  "struct_iterable_derive",
- "struct_iterable_internal",
  "trybuild",
 ]
 
 [[package]]
 name = "struct_iterable_derive"
-version = "0.1.2"
+version = "0.2.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -178,7 +177,7 @@ dependencies = [
 
 [[package]]
 name = "struct_iterable_internal"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "struct_iterable",
 ]

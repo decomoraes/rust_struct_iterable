@@ -1,0 +1,7 @@
+error[E0277]: `Vec<u8>` doesn't implement `std::fmt::Display`
+ --> tests/ui/to_missing_impl.rs:6:19
+  |
+6 | #[iterable(to(dyn std::fmt::Display))]
+  |                   ^^^^^^^^^^^^^^^^^ the trait `std::fmt::Display` is not implemented for `Vec<u8>`
+  |
+  = help: see issue #48214

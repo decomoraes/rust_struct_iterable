@@ -1,4 +1,4 @@
-error: unknown attribute; expected `#[iterable(crate = "...")]`
+error: unknown attribute; expected `to(dyn Trait)`, `no_any`, or `crate = "..."`
  --> tests/ui/unknown_attr.rs:4:12
   |
 4 | #[iterable(unknown_option)]

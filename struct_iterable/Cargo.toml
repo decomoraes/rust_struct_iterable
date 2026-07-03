@@ -1,22 +1,21 @@
 [package]
 name = "struct_iterable"
-version = "0.1.2"
+version = "0.2.0"
 edition.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "A Rust library providing a proc macro to make a struct iterable."
+description = "A derive macro to iterate a struct's fields as (name, value) pairs. no_std, zero allocation."
 readme = "README.md"
 keywords = ["derive", "iterate", "struct", "fields", "reflection"]
-categories = ["rust-patterns", "development-tools::procedural-macro-helpers"]
+categories = ["rust-patterns", "development-tools::procedural-macro-helpers", "no-std"]
 homepage = "https://github.com/decomoraes/rust_struct_iterable"
 documentation = "https://docs.rs/struct_iterable"
 include = ["/src", "/README.md", "/LICENSE-MIT", "/LICENSE-APACHE"]
 
 [dependencies]
 struct_iterable_derive.workspace = true
-struct_iterable_internal.workspace = true
 
 [dev-dependencies]
 trybuild = { version = "1.0", features = ["diff"] }

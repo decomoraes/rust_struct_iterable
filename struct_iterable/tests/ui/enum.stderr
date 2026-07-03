@@ -1,4 +1,4 @@
-error: `#[derive(Iterable)]` cannot be derived for enums; it iterates over the fields of a struct
+error: `#[derive(Iterable)]` cannot be derived for enums; it iterates over the fields of a struct (for enum variants, see the `strum` crate)
  --> tests/ui/enum.rs:4:1
   |
 4 | enum Kind {
