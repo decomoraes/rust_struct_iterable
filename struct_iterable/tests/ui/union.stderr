@@ -1,7 +1,5 @@
-error: proc-macro derive panicked
- --> tests/ui/union.rs:3:10
+error: `#[derive(Iterable)]` cannot be derived for unions
+ --> tests/ui/union.rs:4:1
   |
-3 | #[derive(Iterable)]
-  |          ^^^^^^^^
-  |
-  = help: message: Only structs are supported
+4 | union Raw {
+  | ^^^^^

@@ -17,3 +17,8 @@ proc-macro = true
 syn.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true
+
+[dev-dependencies]
+# Path-only (no version) so cargo strips it from the published manifest;
+# it exists to let the doctest exercise the derive through the facade.
+struct_iterable = { path = "../struct_iterable" }

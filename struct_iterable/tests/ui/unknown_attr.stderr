@@ -1,0 +1,5 @@
+error: unknown attribute; expected `#[iterable(crate = "...")]`
+ --> tests/ui/unknown_attr.rs:4:12
+  |
+4 | #[iterable(unknown_option)]
+  |            ^^^^^^^^^^^^^^

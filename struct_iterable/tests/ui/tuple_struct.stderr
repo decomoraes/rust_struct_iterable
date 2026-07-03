@@ -1,7 +1,5 @@
-error: proc-macro derive panicked
- --> tests/ui/tuple_struct.rs:3:10
+error: `#[derive(Iterable)]` currently supports only structs with named fields
+ --> tests/ui/tuple_struct.rs:4:8
   |
-3 | #[derive(Iterable)]
-  |          ^^^^^^^^
-  |
-  = help: message: Only structs with named fields are supported
+4 | struct Pair(u32, String);
+  |        ^^^^

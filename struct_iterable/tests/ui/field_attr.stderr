@@ -1,0 +1,5 @@
+error: field-level `#[iterable(...)]` attributes are not supported yet
+ --> tests/ui/field_attr.rs:5:5
+  |
+5 |     #[iterable(skip)]
+  |     ^^^^^^^^^^^^^^^^^

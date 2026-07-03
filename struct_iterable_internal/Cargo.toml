@@ -11,3 +11,8 @@ readme = "README.md"
 include = ["/src", "/README.md"]
 
 [dependencies]
+
+[dev-dependencies]
+# Path-only (no version) so cargo strips it from the published manifest;
+# it exists to let the doctests exercise the trait through the facade.
+struct_iterable = { path = "../struct_iterable" }

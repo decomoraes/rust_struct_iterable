@@ -1,0 +1,12 @@
+error[E0597]: `owned` does not live long enough
+  --> tests/ui/lifetime_non_static.rs:12:27
+   |
+11 |     let owned = String::from("hello");
+   |         ----- binding `owned` declared here
+12 |     let b = Borrowed { s: &owned };
+   |                           ^^^^^^ borrowed value does not live long enough
+13 |     for (name, _) in b.iter() {
+   |                      -------- argument requires that `owned` is borrowed for `'static`
+...
+16 | }
+   | - `owned` dropped here while still borrowed
