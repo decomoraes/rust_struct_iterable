@@ -67,8 +67,43 @@ Dev-dependencies do not need to honor the MSRV — only the published crates do.
 
 ## Releases
 
-Releases are currently cut manually by the maintainer, publishing the three
-crates in dependency order (internal → derive → facade). Automated releases
-via release-plz arrive with 0.2. Until then, don't touch version numbers or
-the CHANGELOG's version headings in PRs — the maintainer handles those at
+Releases are automated with [release-plz](https://release-plz.dev)
+(`release-plz.toml` + `.github/workflows/release-plz.yml`), with the
+maintainer's merge as the only trigger — nothing is ever published without
+that explicit approval:
+
+1. Every push to `main` opens or updates a **release PR** containing the
+   computed version bumps (inferred from Conventional Commits), updated
+   `CHANGELOG.md` entries, and a `cargo-semver-checks` report. The three
+   crates share one `version_group`, so they always bump together; and
+   because they reference each other by `version + path`, a change in the
+   derive crate re-releases the facade and the internal shim too — which is
+   the desired lockstep behavior.
+2. Merging the release PR runs the release job: it publishes the crates to
+   crates.io in dependency order, pushes a single lockstep tag `v{version}`
+   (one tag per release, never per-crate tags), and creates the GitHub
+   release.
+
+The release job needs the `CARGO_REGISTRY_TOKEN` repository secret (a
+crates.io token scoped to publish-update). Until that secret is configured,
+the release job is a no-op and releases use the manual process below.
+
+### Manual fallback
+
+Publish in dependency order. The facade depends on the derive crate, and the
+`struct_iterable_internal` shim depends on the facade — so the shim goes
+**last**:
+
+```sh
+cargo publish -p struct_iterable_derive --locked
+cargo publish -p struct_iterable --locked
+cargo publish -p struct_iterable_internal --locked
+git tag v0.2.0 && git push origin v0.2.0   # single lockstep tag: v{version}
+```
+
+Then stamp the release date in `CHANGELOG.md` and create the GitHub release
+from the tag.
+
+In PRs, don't touch version numbers or the CHANGELOG's version headings —
+release automation (or the maintainer, in the fallback) handles those at
 release time.

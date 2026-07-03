@@ -1,0 +1,29 @@
+# Release automation via release-plz (https://release-plz.dev).
+#
+# Flow: every push to main opens/updates a release PR with version bumps and
+# changelog entries; nothing is published until the maintainer merges it.
+# See CONTRIBUTING.md ("Releases") for the full flow and the manual fallback.
+
+[workspace]
+changelog_update = true
+git_release_enable = true
+semver_check = true
+# Single lockstep tag per release (e.g. v0.2.0), not per-crate tags.
+git_tag_name = "v{{ version }}"
+
+# All three crates are versioned and released in lockstep. Note: members of a
+# version_group with no changes of their own only re-release when a path-dep
+# member bumps — with the workspace's version + path dependencies, the facade
+# always follows the derive crate and the internal shim always follows the
+# facade, which is the desired behavior.
+[[package]]
+name = "struct_iterable"
+version_group = "main"
+
+[[package]]
+name = "struct_iterable_derive"
+version_group = "main"
+
+[[package]]
+name = "struct_iterable_internal"
+version_group = "main"

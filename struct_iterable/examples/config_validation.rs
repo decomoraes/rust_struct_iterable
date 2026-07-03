@@ -3,7 +3,7 @@
 //!
 //! Run with: `cargo run -p struct_iterable --example config_validation`
 
-use struct_iterable::Iterable;
+use struct_iterable::{Iterable, IterableMut};
 
 #[derive(Iterable)]
 struct ServerConfig {
@@ -35,7 +35,7 @@ fn unset_fields(config: &impl Iterable) -> Vec<&'static str> {
 }
 
 fn main() {
-    let config = ServerConfig {
+    let mut config = ServerConfig {
         host: "localhost".to_string(),
         port: 8080,
         api_key: None,
@@ -52,4 +52,13 @@ fn main() {
             println!("  - {name}");
         }
     }
+
+    // Since 0.2 the same derive also gives mutable access (IterableMut):
+    // fix a field in place instead of just reporting it.
+    *config
+        .field_mut("log_level")
+        .unwrap()
+        .downcast_mut::<String>()
+        .unwrap() = "info".to_string();
+    println!("log_level defaulted to {:?}", config.log_level);
 }

@@ -77,6 +77,8 @@ fn skipped_fields_are_invisible() {
     assert_eq!(names, ["kept", "also_kept"]);
     assert_eq!(s.field_count(), 2);
     assert!(s.field("hidden").is_none());
+    // Skipping only affects iteration; direct access is untouched.
+    assert_eq!(s.hidden, "secret");
 }
 
 #[test]
@@ -105,4 +107,6 @@ fn skip_unlocks_borrowed_structs_on_the_any_path() {
     let fields: Vec<(&'static str, &dyn Any)> = p.iter().collect();
     assert_eq!(fields.len(), 1);
     assert_eq!(fields[0].0, "retries");
+    // Skipping only affects iteration; direct access is untouched.
+    assert_eq!(p.name, "borrowed");
 }
