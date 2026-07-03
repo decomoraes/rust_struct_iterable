@@ -1,105 +1,127 @@
-# Struct Iterable
+# struct_iterable
 
-`Struct Iterable` is a Rust library that provides a proc macro to make a struct iterable. This allows you to iterate over the fields of your struct in a generic way, with each iteration returning a tuple containing the name of the field as a static string and a reference to the field's value as a `dyn Any`.
+[![crates.io](https://img.shields.io/crates/v/struct_iterable.svg)](https://crates.io/crates/struct_iterable)
+[![docs.rs](https://img.shields.io/docsrs/struct_iterable)](https://docs.rs/struct_iterable)
+[![CI](https://github.com/decomoraes/rust_struct_iterable/actions/workflows/ci.yml/badge.svg)](https://github.com/decomoraes/rust_struct_iterable/actions/workflows/ci.yml)
+![MSRV](https://img.shields.io/crates/msrv/struct_iterable)
 
-## How to Use
+One derive to iterate a struct's fields as `(name, value)` pairs.
+No framework to adopt, no new concepts to learn: derive, loop, done.
 
-First, add `Struct Iterable` to your `Cargo.toml`:
+## Quick start
 
 ```toml
 [dependencies]
-struct_iterable = "0.1.1"
+struct_iterable = "0.1.2"
 ```
-
-Next, include the library at the top of your Rust file:
 
 ```rust
 use struct_iterable::Iterable;
-```
 
-Finally, add the `#[derive(Iterable)]` attribute to your struct:
-
-```rust
 #[derive(Iterable)]
-struct MyStruct {
-    field1: u32,
-    field2: String,
-    // etc.
+struct Connection {
+    host: String,
+    port: u16,
+}
+
+let conn = Connection { host: "localhost".into(), port: 5432 };
+
+for (name, value) in conn.iter() {
+    if let Some(text) = value.downcast_ref::<String>() {
+        println!("{name} = {text:?}");
+    } else if let Some(number) = value.downcast_ref::<u16>() {
+        println!("{name} = {number}");
+    }
 }
 ```
 
-Now, you can iterate over the fields of an instance of your struct:
-    
-```rust
-let my_instance = MyStruct {
-    field1: 42,
-    field2: "Hello, world!".to_string(),
-};
+## What you get
 
-for (field_name, field_value) in my_instance.iter() {
-    println!("{}: {:?}", field_name, field_value);
-}
-```
+- Field names as `&'static str`, yielded in declaration order.
+- Field values as `&dyn Any` — `downcast_ref::<T>()` them back to the concrete
+  types you know are in there.
+- A plain `std::vec::IntoIter` iterator: exact-size, double-ended, and it works
+  with every iterator adapter.
+- Support for generic, lifetime-parameterized, and const-generic structs (with
+  the `'static` caveat below).
+- An object-safe trait: `Box<dyn Iterable>` works.
+- Clear, spanned compile errors — not proc-macro panics — when the derive
+  can't apply.
 
 ## Limitations
-- Only structs with named fields are supported.
-- Only structs are supported, not enums or unions.
 
-## Implementation
+Honest and up front:
 
-Here is the implementation of the proc macro:
+- **Named-field structs only.** Tuple structs, unit structs, enums, and unions
+  are rejected with a clear compile error.
+- **Field types must be `'static`.** Values are erased to `dyn Any`, and `Any`
+  requires `'static`. Generic and lifetime-parameterized structs compile, but
+  the `Iterable` impl only applies where every field type is `'static`:
+  `Config<String>` and `Borrowed<'static>` iterate, `Borrowed<'a>` does not.
+- **Read-only access.** There is no `iter_mut` yet; it is on the roadmap.
+- Each `iter()` call allocates one `Vec` behind the scenes.
+
+## Renamed the crate?
+
+The generated code refers to `::struct_iterable` by name (proc macros have no
+`$crate`). If you rename the facade in `Cargo.toml`, or re-export it from
+another crate, point the derive at the right path:
 
 ```rust
-extern crate proc_macro;
+use struct_iterable as si;
 
-use proc_macro::TokenStream;
-use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields};
-use iterable_structs::Iterable;
-
-#[proc_macro_derive(Iterable)]
-pub fn derive_iterable(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
-
-    let struct_name = input.ident;
-    let fields = match input.data {
-        Data::Struct(data_struct) => match data_struct.fields {
-            Fields::Named(fields_named) => fields_named.named,
-            _ => panic!("Only structs with named fields are supported"),
-        },
-        _ => panic!("Only structs are supported"),
-    };
-
-    let fields_iter = fields.iter().map(|field| {
-        let field_ident = &field.ident;
-        let field_name = field_ident.as_ref().unwrap().to_string();
-        quote! {
-            (#field_name, &(self.#field_ident) as &dyn std::any::Any)
-        }
-    });
-
-    let expanded = quote! {
-        impl Iterable for #struct_name {
-            fn iter<'a>(&'a self) -> std::vec::IntoIter<(&'static str, &'a dyn std::any::Any)> {
-                vec![
-                    #(#fields_iter),*
-                ].into_iter()
-            }
-        }
-    };
-
-    TokenStream::from(expanded)
+#[derive(si::Iterable)]
+#[iterable(crate = "si")]
+struct Point {
+    x: i32,
+    y: i32,
 }
 ```
 
-The macro takes in the TokenStream of a struct and expands it into an implementation of the Iterable trait for that struct. This trait provides an iter method that returns an iterator over tuples of field names and values.
+## Comparison with alternatives
 
-## Contributing and License
+| Crate | What it does | Pick it when |
+|---|---|---|
+| **struct_iterable** | `(name, &dyn Any)` iteration, one derive | You want the 30-second version: derive, loop, downcast |
+| [bevy_reflect](https://crates.io/crates/bevy_reflect) | Full reflection framework: `field_mut`, `DynamicStruct`, enums, tuple structs, type registry | You need real reflection (mutation, by-name access, runtime construction) or you're in Bevy |
+| [facet](https://crates.io/crates/facet) | Const shape data per type plus a reflection ecosystem (serialization, diffing, CLI) | You're building serializers or tooling on top of reflection |
+| [metastruct](https://crates.io/crates/metastruct) | Per-struct macros over fields, zero dynamic dispatch, mutation support | You want compile-time codegen and no `dyn Any` |
+| [field_access](https://crates.io/crates/field_access) | `field("name")` accessors with typed getters, mutation, no_std | You want by-name access to individual fields |
+| [valuable](https://crates.io/crates/valuable) | Visitor-based structured values (the tracing ecosystem) | Structured logging |
+| [struct-field-names-as-array](https://crates.io/crates/struct-field-names-as-array) | `const` array of field names only | You only need the names |
 
-`Struct Iterable` is an open-source project, and contributions are warmly welcomed. Whether you're fixing bugs, improving the documentation, or proposing new features, your efforts are highly appreciated!
+An honest pointer: if you need **mutation** or **non-`'static` fields** today,
+bevy_reflect or metastruct will serve you better until our roadmap lands.
 
-If you're interested in contributing, please feel free to submit a pull request. For major changes, please open an issue first to discuss what you would like to change.
+## MSRV
 
-Please note that this project is released with a Contributor Code of Conduct. By participating in this project, you agree to abide by its terms.
+The minimum supported Rust version is **1.71**, verified by a dedicated CI job.
+Raising the MSRV is a minor-version bump, done only when a dependency forces it
+or a meaningfully useful language feature justifies it.
 
-`Struct Iterable` is distributed under the terms of the MIT license. As such, you're free to use, modify, distribute, and privately use it in any way you see fit, in accordance with the terms of the license.
+## Semver policy
+
+Pre-1.0, breaking changes happen only at 0.x version bumps, and each one is
+called out in the [CHANGELOG](CHANGELOG.md) with a migration table.
+
+The three crates in this repository (`struct_iterable`,
+`struct_iterable_derive`, `struct_iterable_internal`) are versioned and
+released in lockstep. Depend only on `struct_iterable` — the `_derive` and
+`_internal` crates are implementation details.
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
+  <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or
+  <http://opensource.org/licenses/MIT>)
+
+at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
