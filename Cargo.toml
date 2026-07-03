@@ -5,6 +5,9 @@ members = [
     "struct_iterable_derive",
     "struct_iterable_internal",
 ]
+# Compile-only compatibility fixtures built by CI against the published
+# crates; deliberately not workspace members.
+exclude = ["ci-fixtures"]
 
 [workspace.package]
 edition = "2021"
@@ -16,6 +19,6 @@ repository = "https://github.com/decomoraes/rust_struct_iterable"
 [workspace.dependencies]
 struct_iterable_derive = { version = "=0.1.2", path = "struct_iterable_derive" }
 struct_iterable_internal = { version = "0.1.1", path = "struct_iterable_internal" }
-syn = { version = "2.0.13", default-features = false, features = ["derive", "parsing", "printing", "proc-macro"] }
-quote = "1.0.26"
-proc-macro2 = "1.0.56"
+syn = { version = "2.0.13", default-features = false, features = ["derive", "parsing", "printing", "proc-macro", "clone-impls"] }
+quote = "1.0.35"
+proc-macro2 = "1.0.80"
